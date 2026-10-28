@@ -1,0 +1,1 @@
+# S6-SensorTwin-Wearable-WISDM-activitate-i-c-dere
