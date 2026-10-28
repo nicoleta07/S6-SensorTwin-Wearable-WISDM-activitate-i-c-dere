@@ -1,33 +1,88 @@
-# Data Card — S6 SensorTwin (WISDM)
+# Data Card — S6: SensorTwin Wearable (WISDM)
 
-## Identificare
-- **Dataset:** WISDM Smartphone and Smartwatch Activity and Biometrics Dataset
-- **Sursă oficială:** UCI Machine Learning Repository
-- **DOI:** https://doi.org/10.24432/C5HK59
-- **Versiune:** dataset UCI donat în 2019
-- **Utilizare propusă:** clasificarea activităților din semnale inerțiale; etapa de cădere este o extensie separată.
+## 1. Descrierea proiectului
 
-## Conținut și proveniență
-- **Subiecți:** 51.
-- **Activități:** 18, conform documentației WISDM.
-- **Număr de înregistrări:** 15,630,426.
-- **Senzori:** accelerometru și giroscop; date de pe smartphone și smartwatch, stocate în directoare separate.
-- **Frecvență de eșantionare:** 20 Hz.
-- **Câmpuri:** `subject-id`, `activity-code`, `timestamp`, `x`, `y`, `z`.
-- **Perioadă calendaristică de colectare:** nu este precizată în metadatele UCI consultate; anul 2019 indică donația datasetului, nu neapărat perioada măsurătorilor.
-- **Rezoluție temporală:** aproximativ 0,05 s între eșantioane la 20 Hz; există și variante segmentate în ferestre de 10 secunde.
-- **Unități:** valorile x/y/z sunt citiri inerțiale din fișiere; unitatea fizică trebuie confirmată în descrierea fișierului/senzorului înainte de a o declara drept g sau m/s².
-- **Valori lipsă:** pagina UCI indică „No” la existența valorilor lipsă. Pipeline-ul verifică din nou fișierul efectiv, deoarece formatele pot varia.
+SensorTwin Wearable este un proiect de Machine Learning care urmărește recunoașterea activităților fizice folosind date colectate de senzori de mișcare. Scopul este de a antrena un model care să identifice activitatea realizată pe baza mișcărilor înregistrate de un dispozitiv mobil sau purtabil.
 
-## Licență și utilizare responsabilă
-- **Licență:** Creative Commons Attribution 4.0 International (CC BY 4.0), conform UCI.
-- **Condiție:** atribuie datasetul lui Gary Weiss/WISDM și păstrează citarea/licența când redistribui date sau rezultate.
-- **Limitare majoră:** WISDM nu este un set dedicat căderilor. Un model antrenat pe activitățile WISDM nu poate fi prezentat ca detector de căderi fără date de cădere etichetate și evaluare separată.
+Proiectul folosește datasetul WISDM și algoritmul Random Forest pentru clasificarea activităților. Acesta reprezintă o etapă inițială în dezvoltarea unui sistem de monitorizare a mișcării și poate constitui o bază pentru cercetări ulterioare privind detectarea căderilor.
 
-## Protocol de evaluare propus
-- **Task CP1:** baseline pentru clasificarea activităților disponibile în fișierul selectat.
-- **Ferestre:** 200 eșantioane (10 s la 20 Hz), neoverlap, separat pentru fiecare subiect și activitate.
-- **Split:** 80% subiecți train / 20% subiecți test, cu seed 42; niciun subiect nu apare în ambele seturi.
-- **Baseline:** Random Forest pe statistici simple (mean, standard deviation, min, max) ale axelor x/y/z.
-- **Metrici:** accuracy și macro-F1; la CP2 se adaugă matricea de confuzie.
-- **Stare rezultate:** nu există scoruri raportate în CP1; acestea se completează după rularea codului pe fișierul local.
+## 2. Sursa și dimensiunea datasetului
+
+- **Numele datasetului:** WISDM Smartphone and Smartwatch Activity and Biometrics Dataset
+- **Sursa folosită în proiect:** Kaggle
+- **Link:** https://www.kaggle.com/datasets/nghhhhn/wisdm-dataset
+- **Sursa originală:** UCI Machine Learning Repository
+- **Numărul de participanți în datasetul original:** 51
+- **Numărul de activități în datasetul original:** 18
+- **Numărul aproximativ de înregistrări în datasetul original:** 15,6 milioane
+- **Frecvența de eșantionare:** 20 Hz
+
+Aceste valori descriu datasetul original WISDM. Numărul efectiv de participanți, înregistrări și activități citite de cod poate fi diferit, în funcție de fișierele incluse în copia Kaggle și de datele care trec de etapa de preprocesare.
+
+## 3. Structura datelor
+
+Codul este conceput să citească fișiere cu șase coloane:
+
+- `subject` — identificatorul participantului;
+- `activity` — activitatea efectuată;
+- `timestamp` — momentul înregistrării;
+- `x` — accelerația pe axa X;
+- `y` — accelerația pe axa Y;
+- `z` — accelerația pe axa Z.
+
+Valorile de pe cele trei axe descriu mișcarea dispozitivului în timpul activităților. Codul selectează fișierele care par să conțină date de accelerometru, dacă denumirile acestora permit identificarea lor.
+
+## 4. Preprocesarea datelor
+
+Înainte de antrenarea modelului, programul caută fișierele disponibile în Kaggle Input și încearcă să dezarhiveze automat fișierele ZIP.
+
+Datele sunt apoi citite, valorile invalide sunt eliminate, iar înregistrările duplicate sunt îndepărtate. Semnalele sunt sortate după fișier, participant și timestamp.
+
+Ulterior, datele sunt împărțite în ferestre de 200 de eșantioane. La o frecvență de 20 Hz, o fereastră reprezintă aproximativ 10 secunde de mișcare. Ferestrele nu se suprapun.
+
+Pentru fiecare fereastră sunt calculate 12 caracteristici statistice: media, deviația standard, valoarea minimă și valoarea maximă pentru fiecare dintre axele X, Y și Z.
+
+Ferestrele care aparțin unor clase cu mai puțin de două exemple sunt eliminate înainte de antrenare.
+
+## 5. Modelul utilizat
+
+Pentru clasificarea activităților este folosit algoritmul **Random Forest**, configurat cu 100 de arbori de decizie.
+
+Modelul învață relația dintre caracteristicile extrase din semnalele senzorilor și etichetele activităților. Pentru a ține cont de eventualele diferențe de reprezentare dintre clase, este folosită și opțiunea `class_weight="balanced"`.
+
+## 6. Împărțirea datelor
+
+Codul încearcă să folosească aproximativ 80% dintre grupurile de participanți pentru antrenare și 20% pentru testare. Împărțirea se face prin `GroupShuffleSplit`, cu `random_state=42`, astfel încât datele aceluiași participant să nu ajungă atât în antrenare, cât și în testare.
+
+Proporția se referă la grupurile de participanți, nu garantează exact 80% dintre înregistrări. Dacă există un singur participant, codul folosește o împărțire aleatorie a ferestrelor, ceea ce oferă o evaluare mai puțin concludentă pentru persoane noi.
+
+## 7. Evaluarea rezultatelor
+
+Performanța modelului este evaluată cu două metrici:
+
+- **Accuracy:** procentul predicțiilor corecte pe setul de testare.
+- **Macro F1-score:** media scorurilor F1 pentru clase, acordând fiecărei clase aceeași importanță.
+
+La rularea notebook-ului sunt afișate acuratețea, Macro F1-score, numărul total de ferestre, numărul ferestrelor de antrenare și testare și numărul activităților clasificate.
+
+Rezultatele efective trebuie completate după executarea codului. Acestea nu pot fi stabilite doar din configurația modelului.
+
+## 8. Fișierul cu rezultate
+
+Programul salvează un fișier numit `sensortwin_metrics.csv` în directorul `/kaggle/working/`.
+
+Acesta conține un rezumat al performanței modelului și al numărului de ferestre folosite. Nu sunt exportate toate înregistrările senzorilor.
+
+## 9. Limitări
+
+Datasetul WISDM este destinat recunoașterii activităților fizice și nu conține, în versiunea standard, o clasă dedicată căderilor. Prin urmare, modelul din această versiune a proiectului recunoaște activități, dar nu poate fi considerat un detector de căderi.
+
+Pentru extinderea proiectului la detectarea căderilor este necesar un dataset cu exemple etichetate explicit ca „fall” și „normal activity”, urmat de adaptarea modelului și de evaluarea sa pe această sarcină.
+
+De asemenea, rezultatele depind de structura fișierelor citite, de calitatea datelor și de participanții disponibili în copia Kaggle.
+
+## 10. Concluzie
+
+Proiectul SensorTwin Wearable demonstrează un flux de lucru de Machine Learning pentru recunoașterea activităților pe baza datelor de accelerometru. Acesta include citirea și curățarea datelor, extragerea caracteristicilor, antrenarea unui model Random Forest și evaluarea prin Accuracy și Macro F1-score.
+
+Rezultatele obținute vor arăta cât de bine recunoaște modelul activitățile din setul de testare și vor oferi un punct de plecare pentru dezvoltarea ulterioară a unui sistem de monitorizare a mișcării.
