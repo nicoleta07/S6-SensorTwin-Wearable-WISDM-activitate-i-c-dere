@@ -2,81 +2,109 @@
 
 ## 1. Descrierea proiectului
 
-SensorTwin Wearable este un proiect de Machine Learning care urmărește recunoașterea activităților fizice folosind date colectate de senzori de mișcare. Scopul este de a antrena un model care să identifice activitatea realizată pe baza mișcărilor înregistrate de un dispozitiv mobil sau purtabil.
+SensorTwin Wearable este un proiect de Machine Learning dedicat recunoașterii activităților fizice pe baza datelor colectate de senzori de mișcare. Scopul experimentului este de a antrena și evalua o rețea neuronală care poate clasifica activități folosind semnalele de accelerație ale telefonului.
 
-Proiectul folosește datasetul WISDM și algoritmul Random Forest pentru clasificarea activităților. Acesta reprezintă o etapă inițială în dezvoltarea unui sistem de monitorizare a mișcării și poate constitui o bază pentru cercetări ulterioare privind detectarea căderilor.
+Pentru acest experiment am folosit datasetul WISDM și am construit un flux de lucru care include preprocesarea datelor, extragerea caracteristicilor, antrenarea pe epoci și evaluarea pe un set de testare separat.
 
-## 2. Sursa și dimensiunea datasetului
+## 2. Sursa datelor
 
-- **Numele datasetului:** WISDM Smartphone and Smartwatch Activity and Biometrics Dataset
-- **Sursa folosită în proiect:** Kaggle
+- **Dataset:** WISDM Smartphone and Smartwatch Activity and Biometrics Dataset
+- **Platformă utilizată:** Kaggle
 - **Link:** https://www.kaggle.com/datasets/nghhhhn/wisdm-dataset
-- **Sursa originală:** UCI Machine Learning Repository
-- **Numărul de participanți în datasetul original:** 51
-- **Numărul de activități în datasetul original:** 18
-- **Numărul aproximativ de înregistrări în datasetul original:** 15,6 milioane
-- **Frecvența de eșantionare:** 20 Hz
+- **Calea din notebook:** `/kaggle/input/datasets/nghhhhn/wisdm-dataset`
 
-Aceste valori descriu datasetul original WISDM. Numărul efectiv de participanți, înregistrări și activități citite de cod poate fi diferit, în funcție de fișierele incluse în copia Kaggle și de datele care trec de etapa de preprocesare.
+Datasetul original WISDM conține date de la 51 de participanți care au realizat 18 activități și aproximativ 15,6 milioane de înregistrări, colectate la o frecvență de 20 Hz. Aceste valori descriu datasetul original; numărul efectiv de exemple folosite în experiment este afișat la rularea codului.
 
-## 3. Structura datelor
+## 3. Senzorii utilizați
 
-Codul este conceput să citească fișiere cu șase coloane:
+În acest experiment am folosit **exclusiv fișierele din folderul `phone/accel`**, care conține datele de accelerometru ale telefonului.
+
+Nu am utilizat datele din `phone/gyro`, `watch/accel` sau `watch/gyro`. Astfel, modelul se bazează doar pe accelerația telefonului pe axele X, Y și Z.
+
+Codul caută toate fișierele de date compatibile din folderul selectat, fără o limită prestabilită a numărului de fișiere sau a numărului de rânduri per fișier.
+
+## 4. Structura datelor
+
+Fișierele sunt interpretate în formatul cu șase coloane:
 
 - `subject` — identificatorul participantului;
-- `activity` — activitatea efectuată;
+- `activity` — activitatea realizată;
 - `timestamp` — momentul înregistrării;
-- `x` — accelerația pe axa X;
-- `y` — accelerația pe axa Y;
-- `z` — accelerația pe axa Z.
+- `x`, `y`, `z` — valorile accelerației pe cele trei axe.
 
-Valorile de pe cele trei axe descriu mișcarea dispozitivului în timpul activităților. Codul selectează fișierele care par să conțină date de accelerometru, dacă denumirile acestora permit identificarea lor.
+În etapa de preprocesare sunt eliminate valorile numerice invalide și înregistrările duplicate din fiecare fișier. Datele sunt apoi ordonate temporal și grupate după participant și activitate.
 
-## 4. Preprocesarea datelor
+## 5. Extragerea caracteristicilor
 
-Înainte de antrenarea modelului, programul caută fișierele disponibile în Kaggle Input și încearcă să dezarhiveze automat fișierele ZIP.
+Semnalele sunt împărțite în ferestre de 200 de eșantioane, fără suprapunere. La frecvența de 20 Hz, o fereastră reprezintă aproximativ 10 secunde.
 
-Datele sunt apoi citite, valorile invalide sunt eliminate, iar înregistrările duplicate sunt îndepărtate. Semnalele sunt sortate după fișier, participant și timestamp.
+Pentru fiecare fereastră sunt calculate 12 caracteristici statistice:
+- media pentru axele X, Y și Z;
+- deviația standard pentru fiecare axă;
+- valoarea minimă pentru fiecare axă;
+- valoarea maximă pentru fiecare axă.
 
-Ulterior, datele sunt împărțite în ferestre de 200 de eșantioane. La o frecvență de 20 Hz, o fereastră reprezintă aproximativ 10 secunde de mișcare. Ferestrele nu se suprapun.
+Aceste caracteristici transformă semnalele brute într-o reprezentare numerică pe care modelul o poate folosi pentru clasificare.
 
-Pentru fiecare fereastră sunt calculate 12 caracteristici statistice: media, deviația standard, valoarea minimă și valoarea maximă pentru fiecare dintre axele X, Y și Z.
+## 6. Modelul de Machine Learning
 
-Ferestrele care aparțin unor clase cu mai puțin de două exemple sunt eliminate înainte de antrenare.
+Pentru experiment am ales o rețea neuronală de tip **Multilayer Perceptron (MLP)**, construită cu TensorFlow/Keras.
 
-## 5. Modelul utilizat
+Arhitectura conține trei straturi dense ascunse, cu 128, 64 și 32 de neuroni. Straturile folosesc funcția de activare ReLU, iar două straturi Dropout sunt utilizate pentru a reduce riscul de supraînvățare. Stratul final folosește Softmax pentru a produce scoruri pentru activitățile clasificate.
 
-Pentru clasificarea activităților este folosit algoritmul **Random Forest**, configurat cu 100 de arbori de decizie.
+Înainte de antrenare, caracteristicile sunt standardizate folosind un `StandardScaler` antrenat exclusiv pe setul de antrenare. Modelul este optimizat cu Adam și funcția de pierdere `sparse_categorical_crossentropy`. Se folosesc ponderi pentru clase pentru a reduce efectul dezechilibrului dintre numărul de exemple.
 
-Modelul învață relația dintre caracteristicile extrase din semnalele senzorilor și etichetele activităților. Pentru a ține cont de eventualele diferențe de reprezentare dintre clase, este folosită și opțiunea `class_weight="balanced"`.
+## 7. Antrenarea și validarea
 
-## 6. Împărțirea datelor
+Modelul este configurat pentru maximum 50 de epoci, cu un batch size de 256. La fiecare epocă sunt urmărite performanțele pe setul de antrenare și pe setul de validare.
 
-Codul încearcă să folosească aproximativ 80% dintre grupurile de participanți pentru antrenare și 20% pentru testare. Împărțirea se face prin `GroupShuffleSplit`, cu `random_state=42`, astfel încât datele aceluiași participant să nu ajungă atât în antrenare, cât și în testare.
+Pentru controlul antrenării sunt folosite:
+- **EarlyStopping:** oprește antrenarea dacă pierderea pe validare nu se mai îmbunătățește și restaurează cele mai bune ponderi;
+- **ReduceLROnPlateau:** reduce rata de învățare când performanța pe validare stagnează.
 
-Proporția se referă la grupurile de participanți, nu garantează exact 80% dintre înregistrări. Dacă există un singur participant, codul folosește o împărțire aleatorie a ferestrelor, ceea ce oferă o evaluare mai puțin concludentă pentru persoane noi.
+Prin urmare, modelul poate termina antrenarea înainte de 50 de epoci dacă nu mai observă îmbunătățiri. Numărul efectiv de epoci este afișat la finalul rulării.
 
-## 7. Evaluarea rezultatelor
+## 8. Împărțirea datelor
 
-Performanța modelului este evaluată cu două metrici:
+Codul încearcă să împartă datele în trei seturi, pe baza identificatorilor participanților:
+- aproximativ 64% pentru antrenare;
+- aproximativ 16% pentru validare;
+- aproximativ 20% pentru testare.
 
-- **Accuracy:** procentul predicțiilor corecte pe setul de testare.
-- **Macro F1-score:** media scorurilor F1 pentru clase, acordând fiecărei clase aceeași importanță.
+Proporțiile sunt aproximative și se referă la ferestrele rezultate din împărțirea grupurilor de participanți. Codul caută o împărțire în care toate clasele să fie prezente în setul de antrenare.
 
-La rularea notebook-ului sunt afișate acuratețea, Macro F1-score, numărul total de ferestre, numărul ferestrelor de antrenare și testare și numărul activităților clasificate.
+Setul de validare este utilizat pentru monitorizarea antrenării și alegerea celor mai bune ponderi. Setul de testare este păstrat separat pentru evaluarea finală.
 
-Rezultatele efective trebuie completate după executarea codului. Acestea nu pot fi stabilite doar din configurația modelului.
+## 9. Evaluarea performanței
 
-## 8. Fișierul cu rezultate
+Modelul este evaluat pe setul de testare folosind următoarele metrici:
 
-Programul salvează un fișier numit `sensortwin_metrics.csv` în directorul `/kaggle/working/`.
+- **Accuracy:** proporția predicțiilor corecte;
+- **Macro F1-score:** media scorurilor F1 pentru clase, acordând aceeași importanță fiecărei clase;
+- **Test loss:** valoarea funcției de pierdere pe setul de testare.
 
-Acesta conține un rezumat al performanței modelului și al numărului de ferestre folosite. Nu sunt exportate toate înregistrările senzorilor.
+Notebook-ul afișează și un raport pe clase, o matrice de confuzie și graficele acurateței și pierderii pe epoci. Acestea permit observarea performanței modelului și a eventualelor semne de supraînvățare.
 
+Valorile finale se completează pe baza rulării efective a notebook-ului, nu sunt presupuse în avans.
 
+## 10. Fișiere generate
 
-## 9. Concluzie
+La final, codul salvează:
+- `sensortwin_metrics.csv` — rezumatul metricilor și al dimensiunii seturilor;
+- `sensortwin_mlp.keras` — modelul neuronal antrenat.
 
-Proiectul SensorTwin Wearable demonstrează un flux de lucru de Machine Learning pentru recunoașterea activităților pe baza datelor de accelerometru. Acesta include citirea și curățarea datelor, extragerea caracteristicilor, antrenarea unui model Random Forest și evaluarea prin Accuracy și Macro F1-score.
+Ambele fișiere sunt salvate în `/kaggle/working/`.
 
-Rezultatele obținute vor arăta cât de bine recunoaște modelul activitățile din setul de testare și vor oferi un punct de plecare pentru dezvoltarea ulterioară a unui sistem de monitorizare a mișcării.
+## 11. Limitări și utilizare responsabilă
+
+Experimentul folosește numai accelerometrul telefonului și nu include informațiile suplimentare care ar putea fi oferite de giroscop sau de ceas.
+
+WISDM este destinat recunoașterii activităților fizice și nu conține, în versiunea standard, o clasă dedicată căderilor. Din acest motiv, modelul nu poate fi prezentat ca un detector de căderi. Pentru o astfel de funcționalitate este necesar un dataset cu exemple etichetate explicit ca „fall” și activități normale, precum și o evaluare specifică acestei sarcini.
+
+Rezultatele depind de calitatea datelor, de activitățile disponibile și de participanții incluși. Acest proiect are un scop educațional și experimental și nu reprezintă un sistem medical sau de siguranță validat.
+
+## 12. Concluzie
+
+În cadrul proiectului SensorTwin Wearable am construit o rețea neuronală MLP pentru recunoașterea activităților folosind datele de accelerometru ale telefonului din WISDM. Am extras caracteristici statistice din ferestre de semnal, am standardizat datele, am antrenat modelul pe epoci și am evaluat performanța folosind un set de testare separat.
+
+Această abordare permite urmărirea procesului de învățare și oferă o bază pentru experimente viitoare, inclusiv compararea cu alte arhitecturi și dezvoltarea unui sistem separat de detectare a căderilor.
