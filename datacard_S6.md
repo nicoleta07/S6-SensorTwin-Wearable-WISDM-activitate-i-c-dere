@@ -73,15 +73,9 @@ Programul salvează un fișier numit `sensortwin_metrics.csv` în directorul `/k
 
 Acesta conține un rezumat al performanței modelului și al numărului de ferestre folosite. Nu sunt exportate toate înregistrările senzorilor.
 
-## 9. Limitări
 
-Datasetul WISDM este destinat recunoașterii activităților fizice și nu conține, în versiunea standard, o clasă dedicată căderilor. Prin urmare, modelul din această versiune a proiectului recunoaște activități, dar nu poate fi considerat un detector de căderi.
 
-Pentru extinderea proiectului la detectarea căderilor este necesar un dataset cu exemple etichetate explicit ca „fall” și „normal activity”, urmat de adaptarea modelului și de evaluarea sa pe această sarcină.
-
-De asemenea, rezultatele depind de structura fișierelor citite, de calitatea datelor și de participanții disponibili în copia Kaggle.
-
-## 10. Concluzie
+## 9. Concluzie
 
 Proiectul SensorTwin Wearable demonstrează un flux de lucru de Machine Learning pentru recunoașterea activităților pe baza datelor de accelerometru. Acesta include citirea și curățarea datelor, extragerea caracteristicilor, antrenarea unui model Random Forest și evaluarea prin Accuracy și Macro F1-score.
 
