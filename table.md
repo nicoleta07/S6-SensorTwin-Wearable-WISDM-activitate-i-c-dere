@@ -1,4 +1,4 @@
-# State of the Art (SOA) — Human Activity Recognition cu senzori mobili și wearable
+# State of the Art 
 
 Tabelul include lucrări fundamentale și review-uri relevante pentru recunoașterea activităților pe baza accelerometrului și a senzorilor purtabili. Nu toate folosesc exact aceeași versiune WISDM sau același protocol experimental ca proiectul S6. Din acest motiv, scorurile numerice nu sunt puse într-o comparație directă: seturile de date, ferestrele, participanții și split-urile diferă.
 
