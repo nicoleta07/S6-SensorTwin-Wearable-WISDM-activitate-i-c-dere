@@ -22,7 +22,7 @@ Literatura HAR arată două familii importante de abordări:
 1. **Machine learning cu feature engineering:** semnalul este segmentat în ferestre, apoi transformat în caracteristici statistice sau de frecvență; clasificatori precum Random Forest, SVM sau alte metode clasice folosesc vectorul de caracteristici.
 2. **Deep learning:** rețelele pot învăța reprezentări direct din secvențe sau din caracteristici prelucrate. În această familie intră CNN, RNN și arhitecturi hibride.
 
-Proiectul S6 folosește o reprezentare compactă, cu 12 statistici calculate pe fiecare fereastră, și compară un MLP cu un baseline Random Forest. Comparația se face pe aceleași subseturi subject-independent. Această evaluare este mai relevantă pentru generalizarea la participanți nevăzuți decât un split aleatoriu la nivel de ferestre.
+
 
 Alternativa propusă pentru un experiment viitor este folosirea ferestrei brute de 200 × 3 eșantioane și evaluarea unui CNN 1D. Aceasta nu trebuie prezentată ca rezultat deja obținut.
 
