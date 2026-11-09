@@ -1,4 +1,3 @@
-# S6-SensorTwin-Wearable-WISDM-activitate-i-c-dere
 # S6 — SensorTwin Wearable (WISDM)
 
 Proiect de **Human Activity Recognition (HAR)** folosind datele accelerometrului telefonului din subsetul `phone/accel` al datasetului WISDM.
